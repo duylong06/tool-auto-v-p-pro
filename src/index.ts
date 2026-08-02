@@ -9,9 +9,9 @@ app.use(express.json());
 app.use('/api', taskRouter);
 
 app.get('/', (_req, res) => {
-  res.json({ status: 'Office Agent đang chạy 🤖' });
+  res.json({ status: 'Office Agent is running' });
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Office Agent server đang chạy tại http://localhost:${PORT}`);
+  console.log(`[Server] Running at http://localhost:${PORT}`);
 });

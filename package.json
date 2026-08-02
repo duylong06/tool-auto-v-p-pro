@@ -9,10 +9,15 @@
     "start": "node dist/index.js",
     "test": "echo \"chưa có test\" && exit 0"
   },
-  "keywords": ["ai-agent", "backend", "automation"],
+  "keywords": [
+    "ai-agent",
+    "backend",
+    "automation"
+  ],
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@google/genai": "^2.13.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1"
   },
