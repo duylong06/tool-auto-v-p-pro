@@ -1,38 +1,48 @@
 /**
- * CÃ¡c kiá»ƒu dá»¯ liá»‡u TRUNG Láº¬P cho táº§ng LLM.
+ * Các kiểu dữ liệu TRUNG LẬP cho tầng LLM.
  *
- * Ã tÆ°á»Ÿng cá»‘t lÃµi: agent.ts chá»‰ lÃ m viá»‡c vá»›i nhá»¯ng kiá»ƒu nÃ y,
- * KHÃ”NG biáº¿t gÃ¬ vá» Claude hay Gemini. Nhá» Ä‘Ã³ Ä‘á»•i nhÃ  cung cáº¥p LLM
- * khÃ´ng cáº§n sá»­a agent.ts, tools/, api/ â€” chá»‰ thÃªm 1 file provider má»›i.
+ * Ý tưởng cốt lõi: agent.ts chỉ làm việc với những kiểu này,
+ * KHÔNG biết gì về Claude hay Gemini. Nhờ đó đổi nhà cung cấp LLM
+ * không cần sửa agent.ts, tools/, api/ — chỉ thêm 1 file provider mới.
  */
 
-/** Má»™t láº§n LLM quyáº¿t Ä‘á»‹nh gá»i tool */
+/** Một lần LLM quyết định gọi tool */
 export interface LLMToolCall {
-  /** ID cá»§a láº§n gá»i (Claude cáº§n; Gemini khÃ´ng cÃ³ nÃªn ta tá»± sinh) */
+  /** ID của lần gọi (Claude cần; Gemini không có nên ta tự sinh) */
   id: string;
-  /** TÃªn tool Ä‘Æ°á»£c chá»n */
+  /** Tên tool được chọn */
   name: string;
-  /** Tham sá»‘ LLM truyá»n vÃ o tool */
+  /** Tham số LLM truyền vào tool */
   input: Record<string, unknown>;
+}
+
+/** Kết quả trả về từ 1 lần gọi LLM */
+export interface LLMResponse {
+  /** Phần text LLM trả lời (có thể rỗng nếu nó chỉ gọi tool) */
+  text: string;
+  /** Danh sách tool LLM muốn gọi (rỗng nghĩa là đã có câu trả lời cuối) */
+  toolCalls: LLMToolCall[];
   /**
-   * Dá»¯ liá»‡u riÃªng cá»§a tá»«ng nhÃ  cung cáº¥p, cáº§n giá»¯ nguyÃªn vÃ  gá»­i tráº£ láº¡i.
-   * VÃ­ dá»¥: Gemini 3 tráº£ vá» `thoughtSignature` (Ä‘iá»ƒm lÆ°u tráº¡ng thÃ¡i suy nghÄ©)
-   * vÃ  Báº®T BUá»˜C pháº£i gá»­i láº¡i á»Ÿ lÆ°á»£t sau, náº¿u khÃ´ng sáº½ lá»—i 400.
-   * Agent khÃ´ng cáº§n hiá»ƒu ná»™i dung nÃ y, chá»‰ cáº§n mang theo.
+   * Dữ liệu thô riêng của từng nhà cung cấp, cần giữ nguyên và gửi trả lại.
+   *
+   * Ví dụ: Gemini 3+ gắn `thoughtSignature` (điểm lưu trạng thái suy nghĩ)
+   * vào các part và BẮT BUỘC phải gửi lại y nguyên ở lượt sau, nếu không
+   * API trả lỗi 400. Thay vì cố tách ra rồi dựng lại (dễ làm mất), ta lưu
+   * nguyên khối và gửi trả nguyên khối.
+   *
+   * Agent KHÔNG cần hiểu nội dung này, chỉ cần mang theo.
    */
   providerMeta?: Record<string, unknown>;
 }
 
-/** Káº¿t quáº£ tráº£ vá» tá»« 1 láº§n gá»i LLM */
-export interface LLMResponse {
-  /** Pháº§n text LLM tráº£ lá»i (cÃ³ thá»ƒ rá»—ng náº¿u nÃ³ chá»‰ gá»i tool) */
-  text: string;
-  /** Danh sÃ¡ch tool LLM muá»‘n gá»i (rá»—ng nghÄ©a lÃ  Ä‘Ã£ cÃ³ cÃ¢u tráº£ lá»i cuá»‘i) */
-  toolCalls: LLMToolCall[];
-}
-
-/** Má»™t tin nháº¯n trong lá»‹ch sá»­ há»™i thoáº¡i (dáº¡ng trung láº­p) */
+/** Một tin nhắn trong lịch sử hội thoại (dạng trung lập) */
 export type LLMMessage =
   | { role: 'user'; content: string }
-  | { role: 'assistant'; content: string; toolCalls?: LLMToolCall[] }
+  | {
+      role: 'assistant';
+      content: string;
+      toolCalls?: LLMToolCall[];
+      /** Dữ liệu thô của provider, xem giải thích ở LLMResponse */
+      providerMeta?: Record<string, unknown>;
+    }
   | { role: 'tool'; toolCallId: string; toolName: string; result: unknown };

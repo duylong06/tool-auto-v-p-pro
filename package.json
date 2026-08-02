@@ -1,13 +1,14 @@
 {
   "name": "office-agent",
-  "version": "0.1.0",
-  "description": "AI Agent tự động hóa công việc văn phòng - kiến trúc tool-based",
+  "version": "0.2.0",
+  "description": "AI Agent tu dong hoa cong viec van phong - kien truc tool-based",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "auth": "tsx src/scripts/auth.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"chưa có test\" && exit 0"
+    "test": "echo \"chua co test\" && exit 0"
   },
   "keywords": [
     "ai-agent",
@@ -17,9 +18,10 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
-    "@google/genai": "^2.13.0",
+    "@google/genai": "^0.14.0",
     "dotenv": "^16.4.5",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "googleapis": "^144.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

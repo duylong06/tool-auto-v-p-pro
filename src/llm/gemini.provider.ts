@@ -4,23 +4,26 @@ import { LLMProvider } from './provider';
 import { LLMMessage, LLMResponse, LLMToolCall } from './types';
 
 /**
- * Provider dÃ¹ng Google Gemini API (cÃ³ gÃ³i MIá»„N PHÃ, khÃ´ng cáº§n tháº» tÃ­n dá»¥ng).
- * Láº¥y API key táº¡i: https://aistudio.google.com/apikey
+ * Provider dùng Google Gemini API (có gói MIỄN PHÍ, không cần thẻ tín dụng).
+ * Lấy API key tại: https://aistudio.google.com/apikey
  *
- * LÆ¯U Ã 1: Ä‘á»«ng báº­t billing trÃªn project Google Cloud, vÃ¬ khi báº­t billing
- * thÃ¬ gÃ³i miá»…n phÃ­ sáº½ biáº¿n máº¥t vÃ  má»i request Ä‘á»u bá»‹ tÃ­nh tiá»n.
+ * LƯU Ý 1: đừng bật billing trên project Google Cloud, vì khi bật billing
+ * thì gói miễn phí sẽ biến mất và mọi request đều bị tính tiền.
  *
- * LÆ¯U Ã 2 (quan trá»ng): cÃ¡c model Gemini 3 trá»Ÿ lÃªn cÃ³ cÆ¡ cháº¿ "thinking".
- * Khi model gá»i tool, nÃ³ tráº£ kÃ¨m 1 chuá»—i `thoughtSignature` â€” giá»‘ng nhÆ°
- * "Ä‘iá»ƒm lÆ°u" tráº¡ng thÃ¡i suy nghÄ©. á»ž lÆ°á»£t tiáº¿p theo ta Báº®T BUá»˜C pháº£i gá»­i
- * láº¡i chuá»—i nÃ y y nguyÃªn, náº¿u khÃ´ng API tráº£ lá»—i 400.
- * VÃ¬ váº­y ta lÆ°u nÃ³ vÃ o `providerMeta` cá»§a má»—i tool call.
+ * LƯU Ý 2 (quan trọng): các model Gemini 3+ có cơ chế "thinking". Khi model
+ * gọi tool, nó gắn kèm chuỗi `thoughtSignature` vào các part — giống như
+ * "điểm lưu" trạng thái suy nghĩ. Ở lượt tiếp theo ta BẮT BUỘC phải gửi lại
+ * y nguyên, nếu không API trả lỗi 400 INVALID_ARGUMENT.
+ *
+ * Cách xử lý: thay vì tách chữ ký ra rồi tự dựng lại part (dễ làm mất khi
+ * model trả về nhiều part), ta LƯU NGUYÊN KHỐI parts gốc vào providerMeta
+ * và gửi trả lại nguyên khối.
  */
 
 /**
- * Gemini yÃªu cáº§u kiá»ƒu dá»¯ liá»‡u trong schema viáº¿t HOA (OBJECT, STRING...),
- * trong khi JSON Schema chuáº©n viáº¿t thÆ°á»ng (object, string...).
- * HÃ m nÃ y chuyá»ƒn Ä‘á»•i Ä‘á»‡ quy cho khá»›p.
+ * Gemini yêu cầu kiểu dữ liệu trong schema viết HOA (OBJECT, STRING...),
+ * trong khi JSON Schema chuẩn viết thường (object, string...).
+ * Hàm này chuyển đổi đệ quy cho khớp.
  */
 function toGeminiSchema(schema: unknown): unknown {
   if (Array.isArray(schema)) {
@@ -40,7 +43,7 @@ function toGeminiSchema(schema: unknown): unknown {
   return schema;
 }
 
-/** Chuyá»ƒn Tool ná»™i bá»™ sang Ä‘á»‹nh dáº¡ng function declaration cá»§a Gemini */
+/** Chuyển Tool nội bộ sang định dạng function declaration của Gemini */
 function toGeminiTool(tool: Tool): FunctionDeclaration {
   return {
     name: tool.name,
@@ -49,7 +52,7 @@ function toGeminiTool(tool: Tool): FunctionDeclaration {
   };
 }
 
-/** Chuyá»ƒn lá»‹ch sá»­ há»™i thoáº¡i trung láº­p sang Ä‘á»‹nh dáº¡ng `contents` cá»§a Gemini */
+/** Chuyển lịch sử hội thoại trung lập sang định dạng `contents` của Gemini */
 function toGeminiContents(messages: LLMMessage[]): Content[] {
   return messages.map((msg): Content => {
     if (msg.role === 'user') {
@@ -57,30 +60,24 @@ function toGeminiContents(messages: LLMMessage[]): Content[] {
     }
 
     if (msg.role === 'assistant') {
-      const parts: Part[] = [];
+      // Ưu tiên gửi lại NGUYÊN KHỐI parts gốc (giữ trọn thoughtSignature)
+      const rawParts = msg.providerMeta?.rawParts;
+      if (Array.isArray(rawParts) && rawParts.length > 0) {
+        return { role: 'model', parts: rawParts as Part[] };
+      }
 
+      // Dự phòng: nếu không có parts gốc thì tự dựng lại
+      const parts: Part[] = [];
       if (msg.content) {
         parts.push({ text: msg.content });
       }
-
       for (const call of msg.toolCalls ?? []) {
-        const part: Part = {
-          functionCall: { name: call.name, args: call.input },
-        };
-
-        // Gá»­i tráº£ láº¡i thoughtSignature y nguyÃªn - Báº®T BUá»˜C vá»›i Gemini 3+
-        const signature = call.providerMeta?.thoughtSignature;
-        if (typeof signature === 'string') {
-          part.thoughtSignature = signature;
-        }
-
-        parts.push(part);
+        parts.push({ functionCall: { name: call.name, args: call.input } });
       }
-
       return { role: 'model', parts };
     }
 
-    // msg.role === 'tool' -> Gemini coi káº¿t quáº£ tool lÃ  1 lÆ°á»£t cá»§a "user"
+    // msg.role === 'tool' -> Gemini coi kết quả tool là 1 lượt của "user"
     return {
       role: 'user',
       parts: [
@@ -108,7 +105,6 @@ export class GeminiProvider implements LLMProvider {
     }
 
     this.client = new GoogleGenAI({ apiKey });
-    // Co the doi model qua .env. Xem model kha dung tai https://aistudio.google.com
     this.model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   }
 
@@ -121,8 +117,6 @@ export class GeminiProvider implements LLMProvider {
       },
     });
 
-    // Doc truc tiep tu parts (thay vi response.functionCalls) de lay duoc
-    // ca thoughtSignature di kem moi functionCall.
     const parts = response.candidates?.[0]?.content?.parts ?? [];
 
     let text = '';
@@ -139,13 +133,15 @@ export class GeminiProvider implements LLMProvider {
           id: `${part.functionCall.name}-${index}-${Date.now()}`,
           name: part.functionCall.name ?? '',
           input: (part.functionCall.args ?? {}) as Record<string, unknown>,
-          providerMeta: part.thoughtSignature
-            ? { thoughtSignature: part.thoughtSignature }
-            : undefined,
         });
       }
     }
 
-    return { text, toolCalls };
+    return {
+      text,
+      toolCalls,
+      // Giu nguyen khoi parts goc de gui tra lai o luot sau
+      providerMeta: { rawParts: parts },
+    };
   }
 }
