@@ -2,19 +2,26 @@ import { Tool } from '../tools/base.tool';
 import { LLMMessage, LLMResponse } from './types';
 
 /**
- * Interface chung mÃ  Má»ŒI nhÃ  cung cáº¥p LLM pháº£i tuÃ¢n theo
+ * Interface chung mà MỌI nhà cung cấp LLM phải tuân theo
  * (Gemini, Claude, Groq, Ollama...).
  *
- * Giá»‘ng há»‡t Ã½ tÆ°á»Ÿng cá»§a Tool interface: Ä‘á»‹nh nghÄ©a "hÃ¬nh dáº¡ng" chung,
- * cÃ²n cÃ¡ch lÃ m cá»¥ thá»ƒ thÃ¬ má»—i provider tá»± lo.
+ * Giống hệt ý tưởng của Tool interface: định nghĩa "hình dạng" chung,
+ * còn cách làm cụ thể thì mỗi provider tự lo.
  */
 export interface LLMProvider {
-  /** TÃªn provider, chá»‰ dÃ¹ng Ä‘á»ƒ log cho dá»… debug */
+  /** Tên provider, chỉ dùng để log cho dễ debug */
   name: string;
 
   /**
-   * Gá»­i lá»‹ch sá»­ há»™i thoáº¡i + danh sÃ¡ch tool cho LLM,
-   * nháº­n láº¡i cÃ¢u tráº£ lá»i Ä‘Ã£ Ä‘Æ°á»£c chuáº©n hoÃ¡ vá» dáº¡ng trung láº­p.
+   * Gửi lịch sử hội thoại + danh sách tool cho LLM,
+   * nhận lại câu trả lời đã được chuẩn hoá về dạng trung lập.
+   *
+   * @param systemPrompt Hướng dẫn chung (vai trò, ngày giờ hiện tại, quy tắc).
+   *                     Mỗi provider tự lo cách truyền vào API của mình.
    */
-  chat(messages: LLMMessage[], tools: Tool[]): Promise<LLMResponse>;
+  chat(
+    messages: LLMMessage[],
+    tools: Tool[],
+    systemPrompt?: string
+  ): Promise<LLMResponse>;
 }

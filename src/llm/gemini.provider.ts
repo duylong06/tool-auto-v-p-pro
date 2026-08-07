@@ -108,12 +108,25 @@ export class GeminiProvider implements LLMProvider {
     this.model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   }
 
-  async chat(messages: LLMMessage[], tools: Tool[]): Promise<LLMResponse> {
+  async chat(
+    messages: LLMMessage[],
+    tools: Tool[],
+    systemPrompt?: string
+  ): Promise<LLMResponse> {
+    const contents = toGeminiContents(messages);
+
+    // Bat debug bang cach dat DEBUG_LLM=1 trong .env
+    if (process.env.DEBUG_LLM === '1') {
+      console.log('[Gemini] contents gui di:');
+      console.log(JSON.stringify(contents, null, 2).slice(0, 3000));
+    }
+
     const response = await this.client.models.generateContent({
       model: this.model,
-      contents: toGeminiContents(messages),
+      contents,
       config: {
         tools: [{ functionDeclarations: tools.map(toGeminiTool) }],
+        systemInstruction: systemPrompt,
       },
     });
 

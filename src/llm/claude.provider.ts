@@ -4,15 +4,15 @@ import { LLMProvider } from './provider';
 import { LLMMessage, LLMResponse, LLMToolCall } from './types';
 
 /**
- * Provider dÃ¹ng Claude API (Anthropic).
- * LÆ¯U Ã: Claude API TÃNH PHÃ theo token, khÃ´ng cÃ³ gÃ³i miá»…n phÃ­.
- * Chá»‰ dÃ¹ng khi báº¡n Ä‘Ã£ náº¡p credit táº¡i https://console.anthropic.com/
+ * Provider dùng Claude API (Anthropic).
+ * LƯU Ý: Claude API TÍNH PHÍ theo token, không có gói miễn phí.
+ * Chỉ dùng khi bạn đã nạp credit tại https://console.anthropic.com/
  *
- * File nÃ y Ä‘á»ƒ sáºµn nháº±m minh hoáº¡: Ä‘á»•i nhÃ  cung cáº¥p LLM chá»‰ cáº§n
- * thÃªm 1 file provider, khÃ´ng Ä‘á»¥ng vÃ o agent.ts hay tools/.
+ * File này để sẵn nhằm minh hoạ: đổi nhà cung cấp LLM chỉ cần
+ * thêm 1 file provider, không đụng vào agent.ts hay tools/.
  */
 
-/** Chuyá»ƒn lá»‹ch sá»­ há»™i thoáº¡i trung láº­p sang Ä‘á»‹nh dáº¡ng messages cá»§a Claude */
+/** Chuyển lịch sử hội thoại trung lập sang định dạng messages của Claude */
 function toClaudeMessages(messages: LLMMessage[]): Anthropic.MessageParam[] {
   return messages.map((msg): Anthropic.MessageParam => {
     if (msg.role === 'user') {
@@ -58,17 +58,22 @@ export class ClaudeProvider implements LLMProvider {
   constructor() {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error('Thiáº¿u ANTHROPIC_API_KEY trong file .env');
+      throw new Error('Thiếu ANTHROPIC_API_KEY trong file .env');
     }
 
     this.client = new Anthropic({ apiKey });
     this.model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
   }
 
-  async chat(messages: LLMMessage[], tools: Tool[]): Promise<LLMResponse> {
+  async chat(
+    messages: LLMMessage[],
+    tools: Tool[],
+    systemPrompt?: string
+  ): Promise<LLMResponse> {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 1024,
+      system: systemPrompt,
       tools: tools.map((tool) => ({
         name: tool.name,
         description: tool.description,
@@ -77,7 +82,7 @@ export class ClaudeProvider implements LLMProvider {
       messages: toClaudeMessages(messages),
     });
 
-    // Chuáº©n hoÃ¡ káº¿t quáº£ vá» dáº¡ng trung láº­p
+    // Chuẩn hoá kết quả về dạng trung lập
     let text = '';
     const toolCalls: LLMToolCall[] = [];
 

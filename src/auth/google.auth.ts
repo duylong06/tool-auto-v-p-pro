@@ -16,8 +16,19 @@ import type { OAuth2Client, Credentials } from 'google-auth-library';
  * Token được lưu vào token.json (đã bị .gitignore chặn, không đẩy lên GitHub).
  */
 
-/** Chỉ xin quyền ĐỌC email - nguyên tắc least privilege: xin ít quyền nhất có thể */
-export const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+/**
+ * Danh sach quyen can xin.
+ * Nguyen tac least privilege: chi xin dung nhung gi thuc su can.
+ *  - gmail.readonly:   CHI DOC email, khong the gui/xoa
+ *  - calendar.events:  doc va TAO su kien lich (can quyen ghi de dat lich)
+ *
+ * LUU Y: moi lan them scope moi, phai chay lai `npm run auth`
+ * vi token cu khong bao gom quyen moi.
+ */
+export const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/calendar.events',
+];
 
 export const REDIRECT_URI = 'http://localhost:3001/oauth2callback';
 

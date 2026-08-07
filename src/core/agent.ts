@@ -1,5 +1,6 @@
 import { Tool } from '../tools/base.tool';
 import { LLMProvider, LLMMessage } from '../llm';
+import { buildSystemPrompt } from './system-prompt';
 
 export interface AgentRunResult {
   finalAnswer: string;
@@ -25,8 +26,11 @@ export async function runAgent(
   // Giới hạn số vòng lặp để agent không chạy vô hạn nếu có lỗi logic
   const MAX_TURNS = 5;
 
+  // Tao moi moi lan chay de ngay gio luon chinh xac
+  const systemPrompt = buildSystemPrompt();
+
   for (let turn = 1; turn <= MAX_TURNS; turn++) {
-    const response = await llm.chat(messages, tools);
+    const response = await llm.chat(messages, tools, systemPrompt);
 
     // LLM không gọi tool nữa -> đây là câu trả lời cuối cùng
     if (response.toolCalls.length === 0) {
