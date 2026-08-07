@@ -31,7 +31,8 @@ Dự án được xây dựng theo 2 nguyên tắc thiết kế xuyên suốt:
 - [ ] Nối Gmail API thật qua OAuth 2.0
 - [ ] Lưu lịch sử task (PostgreSQL)
 - [ ] Tool đọc/ghi Google Sheets
-- [ ] Tool tạo/sửa sự kiện lịch (Calendar API)
+- [x] Tool tạo/sửa sự kiện lịch (Calendar API)
+- [x] System prompt có ngày giờ hiện tại (agent hiểu "hôm nay", "ngày mai")
 - [ ] Tool tạo báo cáo (Word/PDF)
 - [ ] Task queue xử lý công việc chạy nền (BullMQ + Redis)
 - [ ] Scheduled tasks (cron job tự động hóa định kỳ)
